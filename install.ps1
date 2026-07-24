@@ -56,43 +56,7 @@ Write-Host $SteamPath
 
 
 # --------------------------------------
-# Close Steam
-# --------------------------------------
-
-Write-Host ""
-Write-Host "Closing Steam..."
-
-
-$SteamProcesses = @(
-    "steam",
-    "steamwebhelper"
-)
-
-
-foreach ($Process in $SteamProcesses) {
-
-    Get-Process $Process -ErrorAction SilentlyContinue |
-        Stop-Process -Force
-
-}
-
-
-# Wait until Steam fully exits
-
-Start-Sleep -Seconds 3
-
-
-while (Get-Process steam -ErrorAction SilentlyContinue) {
-
-    Write-Host "Waiting for Steam to close..."
-    Start-Sleep -Seconds 2
-
-}
-
-
-
-# --------------------------------------
-# Check existing files
+# Check existing files BEFORE closing Steam
 # --------------------------------------
 
 Write-Host ""
@@ -119,69 +83,114 @@ foreach ($File in $RequiredFiles) {
 }
 
 
-
 if ($Installed) {
 
     Write-Host ""
     Write-Host "All files already exist."
-    Write-Host "Nothing to install."
+    Write-Host "No changes required."
+    exit 0
 
 }
-else {
 
 
-    # ----------------------------------
-    # Download ZIP
-    # ----------------------------------
+# --------------------------------------
+# Files need updating - close Steam
+# --------------------------------------
 
-    $TempZip = Join-Path `
-        $env:TEMP `
-        "steam-deploy.zip"
-
-
-    Write-Host ""
-    Write-Host "Downloading files..."
+Write-Host ""
+Write-Host "Changes required. Closing Steam..."
 
 
-    Invoke-WebRequest `
-        -Uri $ZipUrl `
-        -OutFile $TempZip
+$SteamExe = Join-Path $SteamPath "Steam.exe"
 
 
+if (Test-Path $SteamExe) {
 
-    if (!(Test-Path $TempZip)) {
+    Start-Process $SteamExe "-shutdown"
 
-        Write-Host "Download failed."
-
-    }
-    else {
+}
 
 
-        # ------------------------------
-        # Extract
-        # ------------------------------
+# Wait for Steam to close
 
-        Write-Host "Installing files..."
-
-
-        Expand-Archive `
-            -Path $TempZip `
-            -DestinationPath $SteamPath `
-            -Force
+$Timeout = 30
+$Elapsed = 0
 
 
+while ($Elapsed -lt $Timeout) {
 
-        Remove-Item `
-            $TempZip `
-            -Force
+    $SteamRunning = Get-Process |
+        Where-Object {
+            $_.ProcessName -like "steam*"
+        }
 
 
+    if (-not $SteamRunning) {
 
-        Write-Host "Installation complete."
+        break
 
     }
 
+
+    Write-Host "Waiting for Steam to close..."
+
+    Start-Sleep -Seconds 2
+
+    $Elapsed += 2
+
 }
+
+
+
+# Force close if still running
+
+$SteamRunning = Get-Process |
+    Where-Object {
+        $_.ProcessName -like "steam*"
+    }
+
+
+if ($SteamRunning) {
+
+    Write-Host "Steam did not close. Forcing shutdown..."
+
+    $SteamRunning | Stop-Process -Force
+
+}
+
+
+
+# --------------------------------------
+# Download and install
+# --------------------------------------
+
+$TempZip = Join-Path `
+    $env:TEMP `
+    "steam-deploy.zip"
+
+
+Write-Host ""
+Write-Host "Downloading files..."
+
+
+Invoke-WebRequest `
+    -Uri $ZipUrl `
+    -OutFile $TempZip
+
+
+
+Write-Host "Installing files..."
+
+
+Expand-Archive `
+    -Path $TempZip `
+    -DestinationPath $SteamPath `
+    -Force
+
+
+Remove-Item `
+    $TempZip `
+    -Force
 
 
 
@@ -193,22 +202,11 @@ Write-Host ""
 Write-Host "Starting Steam..."
 
 
-$SteamExe = Join-Path `
-    $SteamPath `
-    "Steam.exe"
-
-
 if (Test-Path $SteamExe) {
 
     Start-Process $SteamExe
 
 }
-else {
-
-    Write-Host "Steam.exe not found. Please start Steam manually."
-
-}
 
 
-Write-Host ""
 Write-Host "Finished."
