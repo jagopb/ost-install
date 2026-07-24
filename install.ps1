@@ -46,7 +46,7 @@ foreach ($Path in $SteamLocations) {
 if (-not $SteamPath) {
 
     Write-Host "Steam folder not found."
-    exit 1
+    exit 0
 
 }
 
