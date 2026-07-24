@@ -4,7 +4,7 @@
 
 # -------- Configuration ---------------
 
-$GitHubRawBase = "https://raw.githubusercontent.com/USERNAME/steam-deploy/main"
+$GitHubRawBase = "https://raw.githubusercontent.com/Goofert42/ost-install/main"
 
 $ZipUrl = "$GitHubRawBase/OST.zip"
 
