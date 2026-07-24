@@ -43,7 +43,6 @@ foreach ($Path in $SteamLocations) {
 }
 
 
-
 if (-not $SteamPath) {
 
     Write-Host "Steam folder not found."
@@ -52,9 +51,43 @@ if (-not $SteamPath) {
 }
 
 
-
 Write-Host "Steam found:"
 Write-Host $SteamPath
+
+
+# --------------------------------------
+# Close Steam
+# --------------------------------------
+
+Write-Host ""
+Write-Host "Closing Steam..."
+
+
+$SteamProcesses = @(
+    "steam",
+    "steamwebhelper"
+)
+
+
+foreach ($Process in $SteamProcesses) {
+
+    Get-Process $Process -ErrorAction SilentlyContinue |
+        Stop-Process -Force
+
+}
+
+
+# Wait until Steam fully exits
+
+Start-Sleep -Seconds 3
+
+
+while (Get-Process steam -ErrorAction SilentlyContinue) {
+
+    Write-Host "Waiting for Steam to close..."
+    Start-Sleep -Seconds 2
+
+}
 
 
 
@@ -62,6 +95,7 @@ Write-Host $SteamPath
 # Check existing files
 # --------------------------------------
 
+Write-Host ""
 Write-Host "Checking existing files..."
 
 
@@ -90,61 +124,91 @@ if ($Installed) {
 
     Write-Host ""
     Write-Host "All files already exist."
-    Write-Host "Nothing to download."
+    Write-Host "Nothing to install."
 
-    exit 0
+}
+else {
+
+
+    # ----------------------------------
+    # Download ZIP
+    # ----------------------------------
+
+    $TempZip = Join-Path `
+        $env:TEMP `
+        "steam-deploy.zip"
+
+
+    Write-Host ""
+    Write-Host "Downloading files..."
+
+
+    Invoke-WebRequest `
+        -Uri $ZipUrl `
+        -OutFile $TempZip
+
+
+
+    if (!(Test-Path $TempZip)) {
+
+        Write-Host "Download failed."
+
+    }
+    else {
+
+
+        # ------------------------------
+        # Extract
+        # ------------------------------
+
+        Write-Host "Installing files..."
+
+
+        Expand-Archive `
+            -Path $TempZip `
+            -DestinationPath $SteamPath `
+            -Force
+
+
+
+        Remove-Item `
+            $TempZip `
+            -Force
+
+
+
+        Write-Host "Installation complete."
+
+    }
 
 }
 
 
 
 # --------------------------------------
-# Download ZIP
+# Restart Steam
 # --------------------------------------
 
-$TempZip = Join-Path `
-    $env:TEMP `
-    "steam-deploy.zip"
-
-
 Write-Host ""
-Write-Host "Downloading files..."
+Write-Host "Starting Steam..."
 
 
-Invoke-WebRequest `
-    -Uri $ZipUrl `
-    -OutFile $TempZip
+$SteamExe = Join-Path `
+    $SteamPath `
+    "Steam.exe"
 
 
+if (Test-Path $SteamExe) {
 
-if (!(Test-Path $TempZip)) {
+    Start-Process $SteamExe
 
-    Write-Host "Download failed."
-    exit 1
+}
+else {
+
+    Write-Host "Steam.exe not found. Please start Steam manually."
 
 }
 
 
-
-# --------------------------------------
-# Extract into Steam root
-# --------------------------------------
-
-Write-Host "Installing files..."
-
-
-Expand-Archive `
-    -Path $TempZip `
-    -DestinationPath $SteamPath `
-    -Force
-
-
-
-Remove-Item `
-    $TempZip `
-    -Force
-
-
-
 Write-Host ""
-Write-Host "Installation complete."
+Write-Host "Finished."
