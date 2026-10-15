@@ -6,13 +6,28 @@
 
 $GitHubRawBase = "https://raw.githubusercontent.com/Goofert42/ost-install/main"
 
-$ZipUrl = "$GitHubRawBase/OST.zip"
+$ZipFileName = "OST-1.1.zip"
+$ZipUrl = "$GitHubRawBase/$ZipFileName"
+
+$VersionMatch = [regex]::Match(
+    $ZipFileName,
+    '^OST-(?<Version>[^.]+(?:\.[^.]+)*)\.zip$'
+)
+
+if (-not $VersionMatch.Success) {
+
+    throw "The OST archive name '$ZipFileName' does not match the expected OST-{version}.zip format."
+
+}
+
+$ExpectedVersion = $VersionMatch.Groups["Version"].Value
 
 # Files that should exist in the Steam ROOT folder
 $RequiredFiles = @(
     "OpenSteamTool.dll",
     "xinput1_4.dll",
-    "dwmapi.dll"
+    "dwmapi.dll",
+    "ost-version.txt"
 )
 
 # --------------------------------------
@@ -82,6 +97,20 @@ foreach ($File in $RequiredFiles) {
 
 }
 
+$VersionFile = Join-Path $SteamPath "ost-version.txt"
+$InstalledVersion = $null
+
+if (Test-Path $VersionFile) {
+
+    $InstalledVersion = (Get-Content $VersionFile -Raw).Trim()
+
+}
+
+if ($InstalledVersion -ne $ExpectedVersion) {
+
+    $Installed = $false
+
+}
 
 if ($Installed) {
 
@@ -166,7 +195,7 @@ if ($SteamRunning) {
 
 $TempZip = Join-Path `
     $env:TEMP `
-    "steam-deploy.zip"
+    $ZipFileName
 
 
 Write-Host ""
@@ -191,6 +220,11 @@ Expand-Archive `
 Remove-Item `
     $TempZip `
     -Force
+
+Set-Content `
+    -Path $VersionFile `
+    -Value $ExpectedVersion `
+    -NoNewline
 
 
 
