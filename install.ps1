@@ -6,7 +6,7 @@
 
 $GitHubRawBase = "https://raw.githubusercontent.com/Goofert42/ost-install/main"
 
-$ZipFileName = "OST-1.2.zip"
+$ZipFileName = "OST-1.3.zip"
 $ZipUrl = "$GitHubRawBase/$ZipFileName"
 
 $VersionMatch = [regex]::Match(
@@ -24,9 +24,7 @@ $ExpectedVersion = $VersionMatch.Groups["Version"].Value
 
 # Files that should exist in the Steam ROOT folder
 $RequiredFiles = @(
-    "OpenSteamTool.dll",
     "xinput1_4.dll",
-    "dwmapi.dll",
     "ost-version.txt"
 )
 
