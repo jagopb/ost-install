@@ -6,7 +6,7 @@
 
 $GitHubRawBase = "https://raw.githubusercontent.com/Goofert42/ost-install/main"
 
-$ZipFileName = "OST-1.1.zip"
+$ZipFileName = "OST-1.2.zip"
 $ZipUrl = "$GitHubRawBase/$ZipFileName"
 
 $VersionMatch = [regex]::Match(
